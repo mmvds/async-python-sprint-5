@@ -1,0 +1,68 @@
+version: '3'
+
+networks:
+  storage_network:
+    driver: bridge
+
+services:
+  service:
+    container_name: service
+    build:
+      context: .
+      dockerfile: dockerization/Dockerfile
+    volumes:
+      - ./files/:/opt/files/
+    depends_on:
+      - pg_db
+      - redis
+    env_file:
+      - .env
+    networks:
+      - storage_network
+
+  pg_db:
+      container_name: postgres
+      build:
+        context: .
+        dockerfile: dockerization/Dockerfile-db
+      restart: always
+      env_file:
+        - .env
+      environment:
+        POSTGRES_HOST: pg_db
+        POSTGRES_USER: ${DB_USER}
+        POSTGRES_PASSWORD: ${DB_PASSWORD}
+        POSTGRES_DB: ${DB_NAME}
+        POSTGRES_PORT: ${DB_PORT}
+      volumes:
+        - ./postgres-data:/var/lib/postgresql/data
+      networks:
+        - storage_network
+
+  redis:
+      container_name: redis
+      build:
+        context: .
+        dockerfile: dockerization/Dockerfile-cache
+      restart: always
+      volumes:
+        - ./docker/redis_cache:/data
+      networks:
+        - storage_network
+
+  nginx:
+      container_name: nginx
+      build:
+        context: .
+        dockerfile: dockerization/Dockerfile-balancer
+      restart: always
+      volumes:
+        - ./services/nginx.conf:/etc/nginx/nginx.conf:ro
+      ports:
+        - "80:80"
+      env_file:
+        - .env
+      depends_on:
+        - service
+      networks:
+        - storage_network
