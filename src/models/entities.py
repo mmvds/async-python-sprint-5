@@ -16,7 +16,7 @@ class FileItem(Base):
     path = Column(String(1024))
     size = Column(Integer)
     is_downloadable = Column(Boolean, default=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
 
 
 class File(BaseModel):

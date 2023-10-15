@@ -1,4 +1,4 @@
-version: '3'
+version: '3.7'
 
 networks:
   storage_network:
@@ -10,11 +10,17 @@ services:
     build:
       context: .
       dockerfile: dockerization/Dockerfile
+    command:
+      sh -c "export PYTHONPATH=/opt/ && cd ./src 
+      && alembic upgrade head 
+      && gunicorn -b 0.0.0.0:8080 -w 1 -k uvicorn.workers.UvicornWorker src.main:app"
     volumes:
       - ./files/:/opt/files/
     depends_on:
-      - pg_db
-      - redis
+      pg_db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - .env
     networks:
@@ -38,6 +44,11 @@ services:
         - ./postgres-data:/var/lib/postgresql/data
       networks:
         - storage_network
+      healthcheck:
+        test: pg_isready -U postgres
+        interval: 5s
+        timeout: 5s
+        retries: 5
 
   redis:
       container_name: redis
